@@ -109,7 +109,9 @@ private[metrics] class MetricsReceiver(val sparkContext: SparkContext,
         lastGaugeValues.put(metricName, value)
         getOrCreateGauge(metricName)
       }
-      case message: Any => throw new SparkException(s"$self does not implement 'receive' for message: $message")
+      case message: Any => context.sendFailure(
+        new SparkException(s"$self does not implement 'receive' for message: $message")
+      )
   }
 
   def getOrCreateCounter(metricName: String): Counter = {
