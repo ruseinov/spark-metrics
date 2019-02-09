@@ -95,20 +95,26 @@ private[metrics] class MetricsReceiver(val sparkContext: SparkContext,
   override def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = {
       case CounterMessage(metricName, value) => {
         getOrCreateCounter(metricName).inc(value)
+        context.reply(true)
       }
       case HistogramMessage(metricName, value, reservoirClass) => {
         getOrCreateHistogram(metricName, reservoirClass).update(value)
+        context.reply(true)
       }
       case MeterMessage(metricName, value) => {
         getOrCreateMeter(metricName).mark(value)
+        context.reply(true)
       }
       case TimerMessage(metricName, value, reservoirClass, clockClass) => {
         getOrCreateTimer(metricName, reservoirClass, clockClass).update(value, MetricsReceiver.DefaultTimeUnit)
+        context.reply(true)
       }
       case GaugeMessage(metricName, value) => {
         lastGaugeValues.put(metricName, value)
         getOrCreateGauge(metricName)
+        context.reply(true)
       }
+
       case message: Any => context.sendFailure(
         new SparkException(s"$self does not implement 'receive' for message: $message")
       )
