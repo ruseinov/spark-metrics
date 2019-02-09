@@ -119,14 +119,14 @@ class MetricsReceiverTest extends FlatSpec with Matchers with BeforeAndAfter wit
   "receive" should "handle CounterMessage correctly" in {
     val counterName = "Counter"
     val counterMessage = CounterMessage(counterName, 1)
-    metricsReceiver.self.send(counterMessage)
+    metricsReceiver.self.askWithRetry(counterMessage)
 
     eventually {
       metricsReceiver.metrics should contain key counterName
       metricsReceiver.metrics.get(counterName).get.asInstanceOf[Counter].getCount shouldBe 1
     }
 
-    metricsReceiver.self.send(counterMessage)
+    metricsReceiver.self.askWithRetry(counterMessage)
 
     eventually {
       metricsReceiver.metrics.get(counterName).get.asInstanceOf[Counter].getCount shouldBe 2
@@ -136,14 +136,14 @@ class MetricsReceiverTest extends FlatSpec with Matchers with BeforeAndAfter wit
   it should "handle HistogramMessage correctly" in {
     val histogramName = "Histogram"
     val histogramMessage = HistogramMessage(histogramName, 1, ReservoirClass.ExponentiallyDecaying)
-    metricsReceiver.self.send(histogramMessage)
+    metricsReceiver.self.askWithRetry(histogramMessage)
 
     eventually {
       metricsReceiver.metrics should contain key histogramName
       metricsReceiver.metrics.get(histogramName).get.asInstanceOf[Histogram].getCount shouldBe 1
     }
 
-    metricsReceiver.self.send(histogramMessage)
+    metricsReceiver.self.askWithRetry(histogramMessage)
 
     eventually {
       metricsReceiver.metrics.get(histogramName).get.asInstanceOf[Histogram].getCount shouldBe 2
@@ -153,14 +153,14 @@ class MetricsReceiverTest extends FlatSpec with Matchers with BeforeAndAfter wit
   it should "handle MeterMessage correctly" in {
     val meterName = "Meter"
     val meterMessage = MeterMessage(meterName, 1)
-    metricsReceiver.self.send(meterMessage)
+    metricsReceiver.self.askWithRetry(meterMessage)
 
     eventually {
       metricsReceiver.metrics should contain key meterName
       metricsReceiver.metrics.get(meterName).get.asInstanceOf[Meter].getCount shouldBe 1
     }
 
-    metricsReceiver.self.send(meterMessage)
+    metricsReceiver.self.askWithRetry(meterMessage)
 
     eventually {
       metricsReceiver.metrics.get(meterName).get.asInstanceOf[Meter].getCount shouldBe 2
@@ -170,14 +170,14 @@ class MetricsReceiverTest extends FlatSpec with Matchers with BeforeAndAfter wit
   it should "handle TimerMessage correctly" in {
     val timerName = "Timer"
     val timerMessage = TimerMessage(timerName, 1, ReservoirClass.ExponentiallyDecaying, ClockClass.UserTime)
-    metricsReceiver.self.send(timerMessage)
+    metricsReceiver.self.askWithRetry(timerMessage)
 
     eventually {
       metricsReceiver.metrics should contain key timerName
       metricsReceiver.metrics.get(timerName).get.asInstanceOf[Timer].getCount shouldBe 1
     }
 
-    metricsReceiver.self.send(timerMessage)
+    metricsReceiver.self.askWithRetry(timerMessage)
 
     eventually {
       metricsReceiver.metrics.get(timerName).get.asInstanceOf[Timer].getCount shouldBe 2
@@ -186,14 +186,14 @@ class MetricsReceiverTest extends FlatSpec with Matchers with BeforeAndAfter wit
 
   it should "handle GaugeMessage correctly" in {
     val gaugeName = "Gauge"
-    metricsReceiver.self.send(GaugeMessage(gaugeName, 1))
+    metricsReceiver.self.askWithRetry(GaugeMessage(gaugeName, 1))
 
     eventually {
       metricsReceiver.metrics should contain key gaugeName
       metricsReceiver.metrics.get(gaugeName).get.asInstanceOf[Gauge[AnyVal]].getValue shouldBe 1
     }
 
-    metricsReceiver.self.send(GaugeMessage(gaugeName, 2))
+    metricsReceiver.self.askWithRetry(GaugeMessage(gaugeName, 2))
 
     eventually {
       metricsReceiver.metrics.get(gaugeName).get.asInstanceOf[Gauge[AnyVal]].getValue shouldBe 2
