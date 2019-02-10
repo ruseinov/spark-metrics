@@ -33,14 +33,15 @@
 package org.apache.spark.groupon.metrics.util
 
 import org.apache.spark.groupon.metrics._
-import org.apache.spark.rpc.{ThreadSafeRpcEndpoint, RpcEnv}
+import org.apache.spark.rpc.{RpcCallContext, RpcEnv, ThreadSafeRpcEndpoint}
 
 class TestMetricsRpcEndpoint(override val rpcEnv: RpcEnv) extends ThreadSafeRpcEndpoint {
   val metricStore = new scala.collection.mutable.ArrayBuffer[MetricMessage]()
 
-  override def receive: PartialFunction[Any, Unit] = {
+  override def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = {
     case msg: MetricMessage => {
       metricStore += msg
+      context.reply("1")
     }
   }
 

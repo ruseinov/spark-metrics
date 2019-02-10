@@ -35,9 +35,11 @@ package org.apache.spark.groupon.metrics
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
-import com.codahale.metrics.{Clock, Reservoir, Metric}
+import com.codahale.metrics.{Clock, Metric, Reservoir}
 import com.codahale.metrics.{ExponentiallyDecayingReservoir, SlidingTimeWindowReservoir, SlidingWindowReservoir, UniformReservoir}
 import org.apache.spark.rpc.RpcEndpointRef
+
+import scala.concurrent.Future
 
 /**
  * SparkMetric instances implement APIs that look like their Codahale counterparts, but do not store any state. Instead,
@@ -51,7 +53,7 @@ sealed trait SparkMetric extends Metric with Serializable {
    * @param message [[MetricMessage]] to send
    */
   def sendMetric(message: MetricMessage): Unit = {
-    metricsEndpoint.send(message)
+    metricsEndpoint.askWithRetry[Any](message)
   }
 }
 

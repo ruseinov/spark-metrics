@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit
 
 import com.codahale.metrics.{Clock, Counter, Gauge, Histogram, Meter, Metric, MetricRegistry, Reservoir, Timer}
 import org.apache.spark.{SparkContext, SparkException}
-import org.apache.spark.rpc.RpcEndpoint
+import org.apache.spark.rpc.{RpcCallContext, RpcEndpoint}
 
 import scala.collection.concurrent
 import scala.collection.JavaConverters.mapAsScalaConcurrentMapConverter
@@ -92,24 +92,32 @@ private[metrics] class MetricsReceiver(val sparkContext: SparkContext,
    * Performs the appropriate update operations on the [[Metric]] instances. If a `metricName` is seen for the first
    * time, a [[Metric]] instance is created using the data from the [[MetricMessage]].
    */
-  override def receive: PartialFunction[Any, Unit] = {
-    case CounterMessage(metricName, value) => {
-      getOrCreateCounter(metricName).inc(value)
-    }
-    case HistogramMessage(metricName, value, reservoirClass) => {
-      getOrCreateHistogram(metricName, reservoirClass).update(value)
-    }
-    case MeterMessage(metricName, value) => {
-      getOrCreateMeter(metricName).mark(value)
-    }
-    case TimerMessage(metricName, value, reservoirClass, clockClass) => {
-      getOrCreateTimer(metricName, reservoirClass, clockClass).update(value, MetricsReceiver.DefaultTimeUnit)
-    }
-    case GaugeMessage(metricName, value) => {
-      lastGaugeValues.put(metricName, value)
-      getOrCreateGauge(metricName)
-    }
-    case message: Any => throw new SparkException(s"$self does not implement 'receive' for message: $message")
+  override def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = {
+      case CounterMessage(metricName, value) => {
+        getOrCreateCounter(metricName).inc(value)
+        context.reply(true)
+      }
+      case HistogramMessage(metricName, value, reservoirClass) => {
+        getOrCreateHistogram(metricName, reservoirClass).update(value)
+        context.reply(true)
+      }
+      case MeterMessage(metricName, value) => {
+        getOrCreateMeter(metricName).mark(value)
+        context.reply(true)
+      }
+      case TimerMessage(metricName, value, reservoirClass, clockClass) => {
+        getOrCreateTimer(metricName, reservoirClass, clockClass).update(value, MetricsReceiver.DefaultTimeUnit)
+        context.reply(true)
+      }
+      case GaugeMessage(metricName, value) => {
+        lastGaugeValues.put(metricName, value)
+        getOrCreateGauge(metricName)
+        context.reply(true)
+      }
+
+      case message: Any => context.sendFailure(
+        new SparkException(s"$self does not implement 'receive' for message: $message")
+      )
   }
 
   def getOrCreateCounter(metricName: String): Counter = {
